@@ -12,6 +12,13 @@ using namespace std::chrono;
 const int SIZE_9X9 = 9;
 const int SIZE_16X16 = 16;
 
+
+template <int SIZE>
+const int SUBGRID_SIZE = static_cast<int>(sqrt(SIZE));
+
+template <int SIZE>
+const int SUBGRID_SIZE_VALUE = SIZE / SUBGRID_SIZE<SIZE>;
+
 template <int SIZE>
 void SudokuGrid(int grid[SIZE][SIZE])
 {
@@ -26,15 +33,11 @@ void SudokuGrid(int grid[SIZE][SIZE])
 }
 
 template <int SIZE>
-bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num, int subgrid,int subgridRowStart,int subgridColStart)
+bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num,int subgridRowStart,int subgridColStart)
 {
     for (int i = 0; i < SIZE; ++i)
     {
-        int rowValue = grid[row][i];
-        int colValue = grid[i][col];
-        int subgridValue = grid[subgridRowStart + i / subgrid][subgridColStart + i % subgrid];
-
-        if (rowValue == num || colValue == num || subgridValue == num)
+        if (grid[row][i] == num || grid[i][col] == num || grid[subgridRowStart + i / SUBGRID_SIZE<SIZE>][subgridColStart + i % SUBGRID_SIZE<SIZE>] == num)
         {
             return false;
         }
@@ -47,7 +50,6 @@ template <int SIZE>
 bool findMinPossibleEmpty(int grid[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues)
 {
     int minPossibilities = SIZE + 1;
-    int subgrid = sqrt(SIZE);
     for (int i = 0; i < SIZE; ++i)
     {
         for (int j = 0; j < SIZE; ++j)
@@ -56,11 +58,11 @@ bool findMinPossibleEmpty(int grid[SIZE][SIZE], int &row, int &col, vector<int> 
             {
                 int possibilities = 0;
                 vector<int> Values;
-                int subgridRowStart = SIZE / subgrid * (i / (SIZE / subgrid));
-                int subgridColStart = SIZE / subgrid * (j / (SIZE / subgrid));
-                for (const auto &element : allPossibleValues[i][j])
+                int subgridRowStart = SUBGRID_SIZE_VALUE<SIZE> * (i / SUBGRID_SIZE_VALUE<SIZE>);
+                int subgridColStart = SUBGRID_SIZE_VALUE<SIZE> * (j / SUBGRID_SIZE_VALUE<SIZE>);
+                for (const int &element : allPossibleValues[i][j])
                 {
-                    if (isValidPlace(grid, i, j, element,subgrid,subgridRowStart,subgridColStart))
+                    if (isValidPlace(grid, i, j, element,subgridRowStart,subgridColStart))
                     {
                         possibilities++;
                         Values.emplace_back(element);
@@ -86,7 +88,6 @@ bool findMinPossibleEmpty(int grid[SIZE][SIZE], int &row, int &col, vector<int> 
 template <int SIZE>
 vector<vector<vector<int>>> getPosibilities(int grid[SIZE][SIZE])
 {
-    int subgrid = sqrt(SIZE);
     vector<vector<vector<int>>> allPosibilities;
     for (int i = 0; i < SIZE; i++)
     {
@@ -96,11 +97,11 @@ vector<vector<vector<int>>> getPosibilities(int grid[SIZE][SIZE])
             vector<int> possibleValues;
             if (grid[i][j] == 0)
             {
-                int subgridRowStart = SIZE / subgrid * (i / (SIZE / subgrid));
-                int subgridColStart = SIZE / subgrid * (j / (SIZE / subgrid));
+                int subgridRowStart = SUBGRID_SIZE_VALUE<SIZE> * (i / SUBGRID_SIZE_VALUE<SIZE>);
+                int subgridColStart = SUBGRID_SIZE_VALUE<SIZE> * (j / SUBGRID_SIZE_VALUE<SIZE>);
                 for (int num = 1; num <= SIZE; num++)
                 {
-                    if (isValidPlace(grid, i, j, num,subgrid,subgridRowStart,subgridColStart))
+                    if (isValidPlace(grid, i, j, num,subgridRowStart,subgridColStart))
                     {
                         possibleValues.emplace_back(num);
                     }

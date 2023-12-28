@@ -58,7 +58,7 @@ bool findMinPossibleEmpty(int grid[SIZE][SIZE], int &row, int &col, vector<int> 
             {
                 int possibilities = 0;
                 vector<int> Values;
-                int subgridRowStart = SUBGRID_SIZE_VALUE<SIZE> * (i / SUBGRID_SIZE_VALUE<SIZE>);
+                int subgridRowStart =SUBGRID_SIZE_VALUE<SIZE> * (i / SUBGRID_SIZE_VALUE<SIZE>);
                 int subgridColStart = SUBGRID_SIZE_VALUE<SIZE> * (j / SUBGRID_SIZE_VALUE<SIZE>);
                 for (const int &element : allPossibleValues[i][j])
                 {
@@ -122,7 +122,7 @@ bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>> &allPossib
     if (!findMinPossibleEmpty(grid, row, col, possibleValues, allPossiblecombinations))
         return true;
 
-    for (int num : possibleValues)
+    for (const int &num : possibleValues)
     {
         grid[row][col] = num;
         if (solveSudoku(grid, allPossiblecombinations))
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        cerr << "Usage: " << argv[0] << " <input_filename>" << endl;
+        cerr << "provide file path" << endl;
         return EXIT_FAILURE;
     }
 

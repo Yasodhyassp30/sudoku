@@ -11,48 +11,63 @@ using namespace std::chrono;
 const int SIZE_9X9 = 9;
 const int SIZE_16X16 = 16;
 
-template<int SIZE>
-void SudokuGrid(int grid[SIZE][SIZE]) {
-    for (int row = 0; row < SIZE; row++) {
-        for (int col = 0; col < SIZE; col++) {
+template <int SIZE>
+void SudokuGrid(int grid[SIZE][SIZE])
+{
+    for (int row = 0; row < SIZE; row++)
+    {
+        for (int col = 0; col < SIZE; col++)
+        {
             cout << grid[row][col] << " ";
         }
         cout << endl;
     }
 }
 
-template<int SIZE>
-bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num) {
-    int subgrid = sqrt(SIZE);
-    for (int i = 0; i < SIZE; ++i) {
+template <int SIZE>
+bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num, int subgrid)
+{
+    
+    for (int i = 0; i < SIZE; ++i)
+    {
         if (grid[row][i] == num || grid[i][col] == num ||
-            grid[SIZE /subgrid  * (row / (SIZE / subgrid)) + i / subgrid][SIZE / subgrid * (col / (SIZE / subgrid)) + i % subgrid] == num) {
+            grid[SIZE / subgrid * (row / (SIZE / subgrid)) + i / subgrid][SIZE / subgrid * (col / (SIZE / subgrid)) + i % subgrid] == num)
+        {
             return false;
         }
     }
     return true;
 }
 
-template<int SIZE>
-bool findEmptyPlace(int grid[SIZE][SIZE], int& row, int& col,vector<int>&currentValues, vector<vector<vector<int>>>& allPossibleValues) {
+template <int SIZE>
+bool findEmptyPlace(int grid[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues)
+{
     int minPossibilities = SIZE + 1;
-    for (int i = 0; i < SIZE; ++i) {
-        for (int j = 0; j < SIZE; ++j) {
-            if (grid[i][j] == 0) {
+    int subgrid = sqrt(SIZE);
+    for (int i = 0; i < SIZE; ++i)
+    {
+        for (int j = 0; j < SIZE; ++j)
+        {
+            if (grid[i][j] == 0)
+            {
                 int possibilities = 0;
                 vector<int> Values;
-                for (const auto& element : allPossibleValues[i][j]) {
-                    if (isValidPlace(grid, i, j, element)) {
+                for (const auto &element : allPossibleValues[i][j])
+                {
+                    if (isValidPlace(grid, i, j, element,subgrid))
+                    {
                         possibilities++;
-                        Values.push_back(element);
+                        Values.emplace_back(element);
                     }
                 }
-                if (possibilities < minPossibilities) {
+                if (possibilities < minPossibilities)
+                {
                     minPossibilities = possibilities;
                     row = i;
                     col = j;
                     currentValues = Values;
-                if (minPossibilities == 1) {
+                    if (minPossibilities == 1)
+                    {
                         return true;
                     }
                 }
@@ -62,33 +77,44 @@ bool findEmptyPlace(int grid[SIZE][SIZE], int& row, int& col,vector<int>&current
     return minPossibilities != SIZE + 1;
 }
 
-template<int SIZE>
-vector<vector<vector<int>>> getPosibilities(int grid[SIZE][SIZE]) {
+template <int SIZE>
+vector<vector<vector<int>>> getPosibilities(int grid[SIZE][SIZE])
+{
+    int subgrid = sqrt(SIZE);
     vector<vector<vector<int>>> allPosibilities;
-    for (int i = 0; i < SIZE; i++) {
+    for (int i = 0; i < SIZE; i++)
+    {
         vector<vector<int>> row;
-        for (int j = 0; j < SIZE; j++) {
+        for (int j = 0; j < SIZE; j++)
+        {
             vector<int> possibleValues;
-            for (int num = 1; num <= SIZE; num++) {
-                if (isValidPlace(grid, i, j, num)) {
-                    possibleValues.push_back(num);
+            if (grid[i][j] == 0)
+            {
+                for (int num = 1; num <= SIZE; num++)
+                {
+                    if (isValidPlace(grid, i, j, num,subgrid))
+                    {
+                        possibleValues.emplace_back(num);
+                    }
                 }
             }
-            row.push_back(possibleValues);
+            row.emplace_back(possibleValues);
         }
-        allPosibilities.push_back(row);
+        allPosibilities.emplace_back(row);
     }
     return allPosibilities;
 }
 
-template<int SIZE>
-bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>>& allPossiblecombinations) {
+template <int SIZE>
+bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>> &allPossiblecombinations)
+{
     int row, col;
     vector<int> possibleValues;
-    if (!findEmptyPlace(grid, row, col, possibleValues,allPossiblecombinations))
+    if (!findEmptyPlace(grid, row, col, possibleValues, allPossiblecombinations))
         return true;
 
-    for (int num : possibleValues) {
+    for (int num : possibleValues)
+    {
         grid[row][col] = num;
         if (solveSudoku(grid, allPossiblecombinations))
             return true;
@@ -97,10 +123,12 @@ bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>>& allPossib
     return false;
 }
 
-template<int SIZE>
-void readInput(string filename, int (&grid)[SIZE][SIZE]) {
+template <int SIZE>
+void readInput(string filename, int (&grid)[SIZE][SIZE])
+{
     ifstream inputFile(filename);
-    if (!inputFile.is_open()) {
+    if (!inputFile.is_open())
+    {
         cerr << "Error: Unable to open input file." << endl;
         exit(EXIT_FAILURE);
     }
@@ -112,15 +140,19 @@ void readInput(string filename, int (&grid)[SIZE][SIZE]) {
     inputFile.close();
 }
 
-template<int SIZE>
-void writeOutput(string filename, const int (&grid)[SIZE][SIZE]) {
+template <int SIZE>
+void writeOutput(string filename, const int (&grid)[SIZE][SIZE])
+{
     ofstream outputFile(filename);
-    if (!outputFile.is_open()) {
+    if (!outputFile.is_open())
+    {
         cerr << "Error: Unable to open output file." << endl;
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
             outputFile << grid[i][j] << " ";
         }
         outputFile << endl;
@@ -129,31 +161,36 @@ void writeOutput(string filename, const int (&grid)[SIZE][SIZE]) {
     outputFile.close();
 }
 
-int obtainSize(string filename) {
+int obtainSize(string filename)
+{
     ifstream inputFile(filename);
-    if (!inputFile.is_open()) {
+    if (!inputFile.is_open())
+    {
         cerr << "Error: Unable to open input file." << endl;
         exit(EXIT_FAILURE);
     }
 
     int size = 0;
     std::string line;
-    while (std::getline(inputFile, line)) {
+    while (std::getline(inputFile, line))
+    {
         std::istringstream iss(line);
         int value;
-        while (iss >> value) {
+        while (iss >> value)
+        {
             size++;
         }
-        break;  
+        break;
     }
 
     inputFile.close();
     return size;
 }
 
-
-int main(int argc, char* argv[]) {
-    if (argc != 2) {
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
         cerr << "Usage: " << argv[0] << " <input_filename>" << endl;
         return EXIT_FAILURE;
     }
@@ -162,40 +199,49 @@ int main(int argc, char* argv[]) {
 
     int puzzleSize = obtainSize(inputFileName);
 
-    if (puzzleSize == SIZE_9X9) {
+    if (puzzleSize == SIZE_9X9)
+    {
+        
         cout << "Solving 9x9 Sudoku puzzle..." << endl;
         int sudoku9x9[SIZE_9X9][SIZE_9X9];
         readInput(inputFileName, sudoku9x9);
         vector<vector<vector<int>>> allPossiblecombinations = getPosibilities(sudoku9x9);
         auto startTime = high_resolution_clock::now();
 
-        if (solveSudoku(sudoku9x9, allPossiblecombinations)) {
+        if (solveSudoku(sudoku9x9, allPossiblecombinations))
+        {
             auto endTime = high_resolution_clock::now();
             auto solveTime = duration_cast<duration<double>>(endTime - startTime);
             cout << "Sudoku solved in " << solveTime.count() << " seconds." << endl;
             SudokuGrid(sudoku9x9);
-            writeOutput(inputFileName.substr(0, inputFileName.length() - 4)+"_output.txt", sudoku9x9);
-        } else {
+            writeOutput(inputFileName.substr(0, inputFileName.length() - 4) + "_output.txt", sudoku9x9);
+        }
+        else
+        {
             cout << "No solution exists." << endl;
         }
-    } else if (puzzleSize == SIZE_16X16) {
+    }
+    else if (puzzleSize == SIZE_16X16)
+    {
         cout << "Solving 16x16 Sudoku puzzle..." << endl;
         int sudoku16x16[SIZE_16X16][SIZE_16X16];
         readInput(inputFileName, sudoku16x16);
         vector<vector<vector<int>>> allPossiblecombinations = getPosibilities(sudoku16x16);
         auto startTime = high_resolution_clock::now();
 
-        if (solveSudoku(sudoku16x16, allPossiblecombinations)) {
+        if (solveSudoku(sudoku16x16, allPossiblecombinations))
+        {
             auto endTime = high_resolution_clock::now();
             auto solveTime = duration_cast<duration<double>>(endTime - startTime);
             cout << "Sudoku solved in " << solveTime.count() << " seconds." << endl;
             SudokuGrid(sudoku16x16);
             writeOutput(inputFileName.substr(0, inputFileName.length() - 4), sudoku16x16);
-        } else {
+        }
+        else
+        {
             cout << "No solution exists." << endl;
         }
     }
 
     return 0;
 }
-

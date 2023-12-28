@@ -5,6 +5,7 @@
 #include <sstream>
 #include <cmath>
 
+
 using namespace std;
 using namespace std::chrono;
 
@@ -40,7 +41,7 @@ bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num, int subgrid)
 }
 
 template <int SIZE>
-bool findEmptyPlace(int grid[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues)
+bool findMinPossibleEmpty(int grid[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues)
 {
     int minPossibilities = SIZE + 1;
     int subgrid = sqrt(SIZE);
@@ -110,7 +111,7 @@ bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>> &allPossib
 {
     int row, col;
     vector<int> possibleValues;
-    if (!findEmptyPlace(grid, row, col, possibleValues, allPossiblecombinations))
+    if (!findMinPossibleEmpty(grid, row, col, possibleValues, allPossiblecombinations))
         return true;
 
     for (int num : possibleValues)

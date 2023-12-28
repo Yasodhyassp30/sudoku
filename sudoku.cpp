@@ -26,17 +26,20 @@ void SudokuGrid(int grid[SIZE][SIZE])
 }
 
 template <int SIZE>
-bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num, int subgrid)
+bool isValidPlace(int grid[SIZE][SIZE], int row, int col, int num, int subgrid,int subgridRowStart,int subgridColStart)
 {
-    
     for (int i = 0; i < SIZE; ++i)
     {
-        if (grid[row][i] == num || grid[i][col] == num ||
-            grid[SIZE / subgrid * (row / (SIZE / subgrid)) + i / subgrid][SIZE / subgrid * (col / (SIZE / subgrid)) + i % subgrid] == num)
+        int rowValue = grid[row][i];
+        int colValue = grid[i][col];
+        int subgridValue = grid[subgridRowStart + i / subgrid][subgridColStart + i % subgrid];
+
+        if (rowValue == num || colValue == num || subgridValue == num)
         {
             return false;
         }
     }
+
     return true;
 }
 
@@ -53,9 +56,11 @@ bool findMinPossibleEmpty(int grid[SIZE][SIZE], int &row, int &col, vector<int> 
             {
                 int possibilities = 0;
                 vector<int> Values;
+                int subgridRowStart = SIZE / subgrid * (i / (SIZE / subgrid));
+                int subgridColStart = SIZE / subgrid * (j / (SIZE / subgrid));
                 for (const auto &element : allPossibleValues[i][j])
                 {
-                    if (isValidPlace(grid, i, j, element,subgrid))
+                    if (isValidPlace(grid, i, j, element,subgrid,subgridRowStart,subgridColStart))
                     {
                         possibilities++;
                         Values.emplace_back(element);
@@ -91,9 +96,11 @@ vector<vector<vector<int>>> getPosibilities(int grid[SIZE][SIZE])
             vector<int> possibleValues;
             if (grid[i][j] == 0)
             {
+                int subgridRowStart = SIZE / subgrid * (i / (SIZE / subgrid));
+                int subgridColStart = SIZE / subgrid * (j / (SIZE / subgrid));
                 for (int num = 1; num <= SIZE; num++)
                 {
-                    if (isValidPlace(grid, i, j, num,subgrid))
+                    if (isValidPlace(grid, i, j, num,subgrid,subgridRowStart,subgridColStart))
                     {
                         possibleValues.emplace_back(num);
                     }

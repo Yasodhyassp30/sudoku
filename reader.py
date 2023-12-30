@@ -15,9 +15,8 @@ def preprocess_image(image):
     selected_mode = 9
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (3, 3), 0) 
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-    cv2.imshow('edges', edges)
-    cv2.waitKey(0)
+    edges = cv2.Canny(blurred, 50, 150, apertureSize=3)
+
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     topleft = None
     topright = None
@@ -54,7 +53,7 @@ def preprocess_image(image):
     otsued = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
     eroded = cv2.erode(otsued, np.ones((3, 3), np.uint8), iterations=1)
     edges = cv2.Canny(eroded, 50, 150, apertureSize=3)
-    contours, _ = cv2.findContours(eroded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     minArea = image.shape[0] * image.shape[1]
     for cnt in contours:
@@ -63,7 +62,6 @@ def preprocess_image(image):
         if len(approx) == 4:
             area = cv2.contourArea(approx)
             if area < minArea:
-                cv2.drawContours(result, [approx], 0, (0, 255, 0), 2)
                 minArea = area
 
     area = (image.shape[0] * image.shape[1])
@@ -102,10 +100,20 @@ def read_cells(result,selected_mode,matrix,model):
         largest_contour = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest_contour)
 
+        forTmodel  = roi[y:y + h, x:x + w]
+
         cropped_image = roi
         #cropped_image = cv2.morphologyEx(cropped_image, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+        forTmodelInverse = cv2.bitwise_not(forTmodel)
         inverted_image = cv2.bitwise_not(cropped_image)
         text = identify_number(inverted_image, model)
+        if selected_mode == 16 and text!=11 and text >9:
+            text_tes = pytesseract.image_to_string(forTmodelInverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
+            if len(text_tes) != 0 and int(text_tes) == 10:
+                text = int(text_tes)
+
+
+        
 
         return i, j, int(text),inverted_image
 
@@ -128,11 +136,24 @@ def read_cells(result,selected_mode,matrix,model):
         print(matrix[i])
 
 
+def create_grid(image, selected_mode):
+    empty_white_image = np.ones_like(image) * 255
+    for i in range(1, selected_mode):
+        cv2.line(empty_white_image, (0, round(i * empty_white_image.shape[0] / selected_mode)), (empty_white_image.shape[1], round(i * empty_white_image.shape[0] / selected_mode)), (0, 0, 0), 2, 1)
+        cv2.line(empty_white_image, (round(i * empty_white_image.shape[1] / selected_mode), 0), (round(i * empty_white_image.shape[1] / selected_mode), empty_white_image.shape[0]), (0, 0, 0), 2, 1)
+    
+    return empty_white_image
+
+
 def draw_on_image(image, matrix, selected_mode):
+    if selected_mode == 9:
+        j_value = 0.35
+    else:
+        j_value = 0.2
     for i in range(selected_mode):
         for j in range(selected_mode):
             if matrix[i][j] != 0:
-                center_x = round(((j+0.35) * image.shape[1] / selected_mode))
+                center_x = round(((j+j_value) * image.shape[1] / selected_mode))
                 center_y = round(((i+0.75) * image.shape[0] / selected_mode))
 
                 cv2.putText(image, str(matrix[i][j]), (center_x, center_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
@@ -143,13 +164,18 @@ def draw_on_image(image, matrix, selected_mode):
 
 
 def main ():
-    model = tf.keras.models.load_model('model1_16.h5')
+    modelx16 = tf.keras.models.load_model('model1_16.h5')
+    modelx9 = tf.keras.models.load_model('model_9.h5')
     image = cv2.imread('images/p4.jpg')
     matrix, result, selected_mode,homography_matrix = preprocess_image(image)
-
+    if selected_mode == 9:
+        model = modelx9
+    else:
+        model = modelx16
 
     read_cells(result,selected_mode,matrix,model)
-    draw_on_image(result,matrix,selected_mode)
+    grid = create_grid(result, selected_mode)
+    draw_on_image(grid,matrix,selected_mode)
 
 
 if __name__ == '__main__':

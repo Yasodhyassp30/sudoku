@@ -3,7 +3,7 @@ import numpy as np
 import pytesseract
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
-
+from solver import solve_16x16,solve_9x9
 import tensorflow as tf
 
 
@@ -128,7 +128,6 @@ def read_cells(result,selected_mode,matrix,model):
 
     for future in futures:
         i, j, value,digit= future.result()
-        print(value)
         matrix[i][j] = value
 
 
@@ -138,12 +137,29 @@ def read_cells(result,selected_mode,matrix,model):
 
 def create_grid(image, selected_mode):
     empty_white_image = np.ones_like(image) * 255
-    for i in range(1, selected_mode):
-        cv2.line(empty_white_image, (0, round(i * empty_white_image.shape[0] / selected_mode)), (empty_white_image.shape[1], round(i * empty_white_image.shape[0] / selected_mode)), (0, 0, 0), 2, 1)
-        cv2.line(empty_white_image, (round(i * empty_white_image.shape[1] / selected_mode), 0), (round(i * empty_white_image.shape[1] / selected_mode), empty_white_image.shape[0]), (0, 0, 0), 2, 1)
-    
-    return empty_white_image
 
+    border_thickness = 4
+    empty_white_image[:border_thickness, :] = 0
+    empty_white_image[-border_thickness:, :] = 0
+    empty_white_image[:, :border_thickness] = 0
+    empty_white_image[:, -border_thickness:] = 0
+
+    for i in range(1, selected_mode):
+        line_thickness = 4
+        if i % int(np.sqrt(selected_mode)) == 0:
+            cv2.line(empty_white_image,
+                     (0, round(i * empty_white_image.shape[0] / selected_mode)),
+                     (empty_white_image.shape[1], round(i * empty_white_image.shape[0] / selected_mode)),
+                     (0, 0, 0), line_thickness, 1)
+            cv2.line(empty_white_image,
+                     (round(i * empty_white_image.shape[1] / selected_mode), 0),
+                     (round(i * empty_white_image.shape[1] / selected_mode), empty_white_image.shape[0]),
+                     (0, 0, 0), line_thickness, 1)
+        else:
+            cv2.line(empty_white_image, (0, round(i * empty_white_image.shape[0] / selected_mode)), (empty_white_image.shape[1], round(i * empty_white_image.shape[0] / selected_mode)), (0, 0, 0), 2, 1)
+            cv2.line(empty_white_image, (round(i * empty_white_image.shape[1] / selected_mode), 0), (round(i * empty_white_image.shape[1] / selected_mode), empty_white_image.shape[0]), (0, 0, 0), 2, 1)
+
+    return empty_white_image
 
 def draw_on_image(image, matrix, selected_mode):
     if selected_mode == 9:
@@ -164,8 +180,8 @@ def draw_on_image(image, matrix, selected_mode):
 
 
 def main ():
-    modelx16 = tf.keras.models.load_model('model1_16.h5')
-    modelx9 = tf.keras.models.load_model('model_9.h5')
+    modelx16 = tf.keras.models.load_model('models/model1_16.h5')
+    modelx9 = tf.keras.models.load_model('models/model_9.h5')
     image = cv2.imread('images/p4.jpg')
     matrix, result, selected_mode,homography_matrix = preprocess_image(image)
     if selected_mode == 9:
@@ -175,6 +191,10 @@ def main ():
 
     read_cells(result,selected_mode,matrix,model)
     grid = create_grid(result, selected_mode)
+    if selected_mode == 16:
+        solve_16x16(matrix)
+    else:
+        solve_9x9(matrix)
     draw_on_image(grid,matrix,selected_mode)
 
 

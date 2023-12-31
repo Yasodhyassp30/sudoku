@@ -96,10 +96,13 @@ def obtain_size(filename):
 
 def solve_16x16(grid):
     all_possible_combinations = get_possibilities(grid)
-    solve_sudoku(grid, all_possible_combinations)
+    if solve_sudoku(grid, all_possible_combinations):
+        return True
+    return False
 
 def solve_9x9(grid):
     all_possible_combinations = get_possibilities(grid)
-    solve_sudoku(grid, all_possible_combinations)
-
+    if solve_sudoku(grid, all_possible_combinations):
+        return True
+    return False
 

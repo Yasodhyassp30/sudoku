@@ -18,7 +18,8 @@ def preprocess_image(image):
     selected_mode = 9
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (3, 3), 0) 
-    edges = cv2.Canny(blurred, 50, 150, apertureSize=3)
+    thershed =cv2.morphologyEx(blurred, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    edges = cv2.Canny(thershed, 50, 150, apertureSize=3)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     topleft = None
@@ -26,6 +27,7 @@ def preprocess_image(image):
     bottomleft = None
     bottomright = None
     largest_contour = max(contours, key=cv2.contourArea)
+
     epsilon = 0.02 * cv2.arcLength(largest_contour, True)
     approx = cv2.approxPolyDP(largest_contour, epsilon, True)
     if len(approx) >= 4:
@@ -48,13 +50,11 @@ def preprocess_image(image):
                                             np.array([[0, 0], [image.shape[1], 0], [0, image.shape[0]],
                                                         [image.shape[1], image.shape[0]]]))
     
-    destination_points = np.array([[0, 0], [image.shape[1], 0], [0, image.shape[0]], [image.shape[1], image.shape[0]]])
-    source_points = np.array([topleft, topright, bottomleft, bottomright])
 
     result = cv2.warpPerspective(image, homography_matrix, (image.shape[1], image.shape[0]))
     result = cv2.resize(result, (400, 400))
 
-    
+
     gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (3, 3), 0)
     otsued = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
@@ -71,9 +71,13 @@ def preprocess_image(image):
             area = cv2.contourArea(approx)
             if area < minArea:
                 minArea = area
-    if minArea*81 <area and minArea*256 >area:
+    if area//minArea in range(80,100):
         selected_mode = 9
-    elif minArea*256 <area:
+    elif area//minArea in range(200,270):
+        selected_mode = 16
+    elif area//minArea  in range(6,12):
+        selected_mode = 9
+    elif area//minArea  in range(12,18):
         selected_mode = 16
 
 
@@ -129,10 +133,6 @@ def read_cells(result,selected_mode,matrix,size = 400):
 
         return i, j, int(text),inverted_image
 
-
-
-
-
     with ThreadPoolExecutor() as executor:
         futures = [executor.submit(process_roi, i, j) for i in range(selected_mode) for j in range(selected_mode)]
         concurrent.futures.wait(futures)
@@ -140,7 +140,12 @@ def read_cells(result,selected_mode,matrix,size = 400):
 
     for future in futures:
         i, j, value,digit= future.result()
+
+        
         matrix[i][j] = value
+
+    for i in range(selected_mode):
+        print(matrix[i])
 
 def create_grid(image, selected_mode):
     empty_white_image = np.ones_like(image) * 255
@@ -185,7 +190,7 @@ def draw_on_image(image, matrix, selected_mode,matrix_copy):
 
 def main ():
 
-    image = cv2.imread('images/p10.jpg')
+    image = cv2.imread('images/p27.jpg')
     matrix, result, selected_mode,H_matrix = preprocess_image(image) 
 
 
@@ -205,6 +210,7 @@ def main ():
     else:
         print("not solved")
 
+    cv2.imshow('result',result)
     original_shape = (image.shape[1], image.shape[0])
 
 

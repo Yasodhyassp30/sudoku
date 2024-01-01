@@ -30,6 +30,8 @@ void SudokuGrid(int grid[SIZE][SIZE])
     }
 }
 
+
+
 template <int SIZE>
 bool isValidPlace(const int grid[SIZE][SIZE], int row, int col, int num, int subgridRowStart, int subgridColStart)
 {
@@ -45,7 +47,7 @@ bool isValidPlace(const int grid[SIZE][SIZE], int row, int col, int num, int sub
 }
 
 template <int SIZE>
-bool findMinPossibleEmpty(const int grid[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues)
+bool findMinPossibleEmptySpaces(const int grid[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues)
 {
     int minPossibilities = SIZE + 1;
     for (int i = 0; i < SIZE; ++i)
@@ -117,7 +119,7 @@ bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>> &allPossib
 {
     int row, col;
     vector<int> possibleValues;
-    if (!findMinPossibleEmpty(grid, row, col, possibleValues, allPossiblecombinations))
+    if (!findMinPossibleEmptySpaces(grid, row, col, possibleValues, allPossiblecombinations))
         return true;
 
     for (const int &num : possibleValues)
@@ -283,8 +285,9 @@ int main(int argc, char *argv[])
         cout << "Solving 9x9 Sudoku puzzle..." << endl;
         int sudoku9x9[SIZE_9X9][SIZE_9X9];
         readInput(inputFileName, sudoku9x9);
-        vector<vector<vector<int>>> allPossiblecombinations = getPosibilities(sudoku9x9);
+
         auto startTime = high_resolution_clock::now();
+        vector<vector<vector<int>>> allPossiblecombinations = getPosibilities(sudoku9x9);
         if (solveSudoku(sudoku9x9, allPossiblecombinations))
         {
             auto endTime = high_resolution_clock::now();
@@ -313,8 +316,9 @@ int main(int argc, char *argv[])
 
         int sudoku16x16[SIZE_16X16][SIZE_16X16];
         readInput(inputFileName, sudoku16x16);
-        vector<vector<vector<int>>> allPossiblecombinations = getPosibilities(sudoku16x16);
+        
         auto startTime = high_resolution_clock::now();
+        vector<vector<vector<int>>> allPossiblecombinations = getPosibilities(sudoku16x16);
         if (solveSudoku(sudoku16x16, allPossiblecombinations))
         {
             

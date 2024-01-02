@@ -84,6 +84,7 @@ bool findMinPossibleEmptySpaces(const int (&grid)[SIZE][SIZE], int &row, int &co
                         possibilities++;
                         Values.emplace_back(element);
                     }
+                    
                 }
                 if (possibilities < minPossibilities)
                 {
@@ -182,7 +183,7 @@ bool readPuzzleVaildate(const int (&grid)[SIZE][SIZE])
             int subgridCol = j / SUBGRID_SIZE<SIZE>;
             if (grid[i][j] == 0)
                 continue;
-            int digit = grid[i][j] - 1;
+            int digit = grid[i][j];
 
             if ((rowMask[i] & (1 << digit)) != 0)
                 return false;
@@ -213,7 +214,9 @@ bool solvedPuzzleVaildate(const int (&grid)[SIZE][SIZE])
         for (int j = 0; j < SIZE; j++)
         {
             int subgridCol = j / SUBGRID_SIZE<SIZE>;
-            int digit = grid[i][j] - 1;
+            int digit = grid[i][j];
+            if (digit == 0)
+                return false;
 
             if ((rowMask[i] & (1 << digit)) != 0)
                 return false;
@@ -305,9 +308,6 @@ int obtainSize(string filename)
 
     inputFile.close();
     return size;
-}
-bool compare(const vector<vector<int>>& a, const vector<vector<int>>& b) {
-    return a.size() < b.size();
 }
 
 int main(int argc, char *argv[])

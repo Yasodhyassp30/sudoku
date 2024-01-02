@@ -93,14 +93,44 @@ def obtain_size(filename):
     with open(filename, "r") as input_file:
         return sum(1 for line in input_file.readline().split())
 
+def readPuzzleVaildate(grid):
+    rowMask = [0] * len(grid)
+    colMask = [0] * len(grid)
+    subgridMask = [[0] * int(math.sqrt(len(grid))) for _ in range(int(math.sqrt(len(grid))))]
+
+    for i in range(len(grid)):
+        subgridRow = i // int(math.sqrt(len(grid)))
+        for j in range(len(grid[0])):
+            subgridCol = j // int(math.sqrt(len(grid)))
+            if grid[i][j] == 0:
+                continue
+            digit = grid[i][j] - 1
+
+            if rowMask[i] & (1 << digit) != 0:
+                return False
+            rowMask[i] |= 1 << digit
+
+            if colMask[j] & (1 << digit) != 0:
+                return False
+            colMask[j] |= 1 << digit
+
+            if subgridMask[subgridRow][subgridCol] & (1 << digit) != 0:
+                return False
+            subgridMask[subgridRow][subgridCol] |= 1 << digit
+
+    return True
 
 def solve_16x16(grid):
+    if readPuzzleVaildate(grid) == False:
+        return False
     all_possible_combinations = get_possibilities(grid)
     if solve_sudoku(grid, all_possible_combinations):
         return True
     return False
 
 def solve_9x9(grid):
+    if readPuzzleVaildate(grid) == False:
+        return False
     all_possible_combinations = get_possibilities(grid)
     if solve_sudoku(grid, all_possible_combinations):
         return True

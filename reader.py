@@ -27,7 +27,6 @@ def preprocess_image(image):
     bottomleft = None
     bottomright = None
     largest_contour = max(contours, key=cv2.contourArea)
-
     epsilon = 0.02 * cv2.arcLength(largest_contour, True)
     approx = cv2.approxPolyDP(largest_contour, epsilon, True)
     if len(approx) >= 4:
@@ -54,7 +53,6 @@ def preprocess_image(image):
     result = cv2.warpPerspective(image, homography_matrix, (image.shape[1], image.shape[0]))
     result = cv2.resize(result, (400, 400))
 
-
     gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (3, 3), 0)
     otsued = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
@@ -64,24 +62,31 @@ def preprocess_image(image):
 
     minArea = 400*400
     area = minArea
+
+
     for cnt in contours:
         epsilon = 0.02 * cv2.arcLength(cnt, True)
         approx = cv2.approxPolyDP(cnt, epsilon, True)
-        if len(approx) == 4:
-            area = cv2.contourArea(approx)
-            if area < minArea:
-                minArea = area
-    if area//minArea in range(80,100):
+        cellArea = cv2.contourArea(approx)
+        if len(approx) == 4 and area//500 < cellArea< area:
+            if cellArea < minArea and cellArea >0:
+                minArea = cellArea
+
+    print(area)
+    print(minArea)
+    print(area//minArea)
+    if area//minArea in range(80,256):
         selected_mode = 9
-    elif area//minArea in range(200,270):
+    elif area//minArea > 256:
         selected_mode = 16
     elif area//minArea  in range(6,12):
         selected_mode = 9
-    elif area//minArea  in range(12,18):
+    elif area//minArea  in range(12,20):
         selected_mode = 16
 
 
     print("puzzle detected:",selected_mode)
+
 
     matrix = [[0 for _ in range(selected_mode)] for _ in range(selected_mode)]
     return matrix, result, selected_mode,homography_matrix
@@ -190,7 +195,7 @@ def draw_on_image(image, matrix, selected_mode,matrix_copy):
 
 def main ():
 
-    image = cv2.imread('images/p27.jpg')
+    image = cv2.imread('images/16x16.png')
     matrix, result, selected_mode,H_matrix = preprocess_image(image) 
 
 

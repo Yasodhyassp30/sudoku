@@ -1,3 +1,7 @@
+//19/ENG/075
+//A.K.Y.S.S.PERERA
+
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -12,6 +16,8 @@ using namespace std::chrono;
 const int SIZE_9X9 = 9;
 const int SIZE_16X16 = 16;
 
+
+//reduce redundant calculations for subgrid size
 template <int SIZE>
 const int SUBGRID_SIZE = static_cast<int>(sqrt(SIZE));
 
@@ -21,7 +27,7 @@ const int SUBGRID_SIZE_VALUE = SIZE / SUBGRID_SIZE<SIZE>;
 
 
 template <int SIZE>
-void SudokuGrid(int grid[SIZE][SIZE])
+void SudokuGrid(int grid[SIZE][SIZE]) //print sudoku puzzle
 {
     for (int row = 0; row < SIZE; row++)
     {
@@ -51,6 +57,7 @@ void SudokuGrid(int grid[SIZE][SIZE])
 
 
 template <int SIZE>
+//check the value is valid for the given row, column and subgrid
 bool isValidPlace(const int (&grid)[SIZE][SIZE], int row, int col, int num, int subgridRowStart, int subgridColStart)
 {
     for (int i = 0; i < SIZE; ++i)
@@ -65,6 +72,7 @@ bool isValidPlace(const int (&grid)[SIZE][SIZE], int row, int col, int num, int 
 }
 
 template <int SIZE>
+//find the empty space with minimum possible values and get the row and colmn with newly updated possible values
 bool findMinPossibleEmptySpaces(const int (&grid)[SIZE][SIZE], int &row, int &col, vector<int> &currentValues, vector<vector<vector<int>>> &allPossibleValues,vector<pair<int, int>> &emptySpaces)
 {
     int minPossibilities = SIZE + 1;
@@ -82,7 +90,7 @@ bool findMinPossibleEmptySpaces(const int (&grid)[SIZE][SIZE], int &row, int &co
                     if (isValidPlace(grid, i, j, element, subgridRowStart, subgridColStart))
                     {
                         possibilities++;
-                        Values.emplace_back(element);
+                        Values.emplace_back(element);//creating new vector for storing possible values
                     }
                     
                 }
@@ -92,7 +100,7 @@ bool findMinPossibleEmptySpaces(const int (&grid)[SIZE][SIZE], int &row, int &co
                     row = i;
                     col = j;
                     currentValues = Values;
-                    if (minPossibilities == 1)
+                    if (minPossibilities == 1)//early stopping for when found possiblity of 1 
                     {
                         return true;
                     }
@@ -104,6 +112,7 @@ bool findMinPossibleEmptySpaces(const int (&grid)[SIZE][SIZE], int &row, int &co
 
 
 template <int SIZE>
+//get all the empty spaces in the grid
 vector<pair<int, int>> getEmptySpaces(const int (&grid)[SIZE][SIZE])
 {
     vector<pair<int, int>> emptySpaces;
@@ -122,6 +131,7 @@ vector<pair<int, int>> getEmptySpaces(const int (&grid)[SIZE][SIZE])
 
 
 template <int SIZE>
+//get all the possible values for each empty space
 vector<vector<vector<int>>> getPosibilities(const int (&grid)[SIZE][SIZE])
 {
     vector<vector<vector<int>>> allPosibilities;
@@ -155,9 +165,11 @@ bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>> &allPossib
 {
     int row, col;
     vector<int> possibleValues;
+    //check if there is any empty space
     if (!findMinPossibleEmptySpaces(grid, row, col, possibleValues, allPossiblecombinations,emptySpaces))
         return true;
 
+    //loop for all possible values
     for (const int &num : possibleValues)
     {
         grid[row][col] = num;
@@ -169,6 +181,7 @@ bool solveSudoku(int (&grid)[SIZE][SIZE], vector<vector<vector<int>>> &allPossib
 }
 
 template <int SIZE>
+//validte the puzzle before solving
 bool readPuzzleVaildate(const int (&grid)[SIZE][SIZE])
 {
     int rowMask[SIZE] = {0};
@@ -202,6 +215,7 @@ bool readPuzzleVaildate(const int (&grid)[SIZE][SIZE])
     return true;
 }
 template <int SIZE>
+//validte the puzzle after solving
 bool solvedPuzzleVaildate(const int (&grid)[SIZE][SIZE])
 {
     int rowMask[SIZE] = {0};
@@ -264,6 +278,7 @@ void readInput(string filename, int (&grid)[SIZE][SIZE], vector<pair<int, int>> 
 }
 
 template <int SIZE>
+//write the solved puzzle to the output file
 void writeOutput(string filename, const int (&grid)[SIZE][SIZE])
 {
     ofstream outputFile(filename);
@@ -284,6 +299,7 @@ void writeOutput(string filename, const int (&grid)[SIZE][SIZE])
     outputFile.close();
 }
 
+//obtain the puzzle size by reading first line of the provided file
 int obtainSize(string filename)
 {
     ifstream inputFile(filename);
@@ -322,7 +338,7 @@ int main(int argc, char *argv[])
 
     int puzzleSize = obtainSize(inputFileName);
 
-    if (puzzleSize == SIZE_9X9)
+    if (puzzleSize == SIZE_9X9)// for 9x9 puzzle
     {
 
         cout << "Solving 9x9 Sudoku puzzle..." << endl;
@@ -353,7 +369,7 @@ int main(int argc, char *argv[])
             cout << "No solution exists." << endl;
         }
     }
-    else if (puzzleSize == SIZE_16X16)
+    else if (puzzleSize == SIZE_16X16)//for 16x16 puzzle
     {
         cout << "Solving 16x16 Sudoku puzzle..." << endl;
 

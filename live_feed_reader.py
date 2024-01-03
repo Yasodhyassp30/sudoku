@@ -4,6 +4,7 @@ import numpy as np
 import pytesseract
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
+
 from solver import solve_16x16,solve_9x9
 import threading
 

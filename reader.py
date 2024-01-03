@@ -185,7 +185,7 @@ def read_cells(result,selected_mode,matrix,size = 400):
 
     cv2.morphologyEx(combined_image, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     cv2.dilate(combined_image, np.ones((3, 3), np.uint8), iterations=1)
-    text=pytesseract.image_to_string(combined_image, config="--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789",lang='eng')
+    text=pytesseract.image_to_string(combined_image, config="--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789",lang='eng')
 
     for i in range(selected_mode):
         print(matrix[i])
@@ -254,7 +254,7 @@ def draw_on_image_initial(image, matrix, selected_mode,matrix_copy):
 
 def main ():
 
-    image = cv2.imread('images/p11.jpg')
+    image = cv2.imread('images/p31.jpg')
 
     try:
         matrix, result, selected_mode,H_matrix = preprocess_image(image) 

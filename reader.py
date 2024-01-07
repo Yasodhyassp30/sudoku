@@ -264,7 +264,7 @@ def read_input(filename):
     
 def main ():
 
-    image = cv2.imread('images/p33.jpg')
+    image = cv2.imread('images/p4.jpg')
 
     try:
         matrix, result, selected_mode,H_matrix = preprocess_image(image) 

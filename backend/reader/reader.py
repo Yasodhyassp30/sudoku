@@ -4,7 +4,6 @@ import numpy as np
 import pytesseract
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
-from solver import solve_16x16,solve_9x9
 import tensorflow as tf
 import subprocess
 import uuid
@@ -13,9 +12,9 @@ import uuid
 
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
-modelx16 = tf.keras.models.load_model('models/model1_16.h5')
-modelx9 = tf.keras.models.load_model('models/model_9.h5')
-cpp_solver =  'Solver.exe'
+modelx16 = tf.keras.models.load_model('reader/model1_16.h5')
+modelx9 = tf.keras.models.load_model('reader/model_9.h5')
+cpp_solver =  'reader/Solver.exe'
 
 
 def detect_lines(image, threshold=50, rho_resolution=1, theta_resolution=np.pi/180):
@@ -110,9 +109,6 @@ def preprocess_image(image):
         selected_mode = 16
 
 
-    print("puzzle detected:",selected_mode)
-
-
     matrix = [[0 for _ in range(selected_mode)] for _ in range(selected_mode)]
     return matrix, result, selected_mode,homography_matrix
 
@@ -190,11 +186,9 @@ def read_cells(result,selected_mode,matrix,size = 400):
     cv2.dilate(combined_image, np.ones((3, 3), np.uint8), iterations=1)
     text=pytesseract.image_to_string(combined_image, config="--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789",lang='eng')
 
-    for i in range(selected_mode):
-        print(matrix[i])
 
 def create_grid(image, selected_mode):
-    empty_white_image = np.ones_like(image) * 255
+    empty_white_image = np.ones((400, 400, 3), dtype=np.uint8) * 255
 
     border_thickness = 4
     empty_white_image[:border_thickness, :] = 0
@@ -262,6 +256,60 @@ def read_input(filename):
     with open(filename, "r") as input_file:
         return [[int(num) for num in line.split()] for line in input_file]
     
+def read_from_image(image):
+    try:
+        u_id =uuid.uuid4()
+        cv2.imwrite(f'files/{u_id}.jpg',image)
+        
+        matrix, result, selected_mode,H_matrix = preprocess_image(image) 
+        read_cells(result,selected_mode,matrix)
+        matirx_copy = copy.deepcopy(matrix)
+        initial_show = create_grid(result,selected_mode)
+        draw_on_image_initial(initial_show,matrix,selected_mode,matirx_copy)
+        cv2.imwrite(f'files/{u_id}_2.jpg',result)
+        return matrix,result,initial_show,u_id
+    except:
+        return None,None,None,None
+    
+def solve_from_image(matrix,u_id):
+    try:
+        identifier = str(uuid.uuid4())
+        original_image = cv2.imread(f'files/{u_id}.jpg')
+        transformed_image = cv2.imread(f'files/{u_id}_2.jpg')
+        _, _, selected_mode,H_matrix = preprocess_image(original_image) 
+        in_H_matrix = np.linalg.inv(H_matrix) 
+        matirx_copy = copy.deepcopy(matrix)
+        filename = "sample_puzzles/"+identifier + ".txt"
+        write_output(filename, matrix)
+        process = subprocess.Popen([cpp_solver, filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        stdout = stdout.decode('utf-8')
+        return_code = process.wait()
+        if return_code ==0:
+            matrix = read_input("sample_puzzles/"+identifier + "_output.txt")
+            draw_on_image(transformed_image,matrix,selected_mode,matirx_copy)
+        else:
+            print("not solved")
+        original_shape = (original_image.shape[1], original_image.shape[0])
+
+        result = cv2.resize(transformed_image, (original_image.shape[1], original_image.shape[0]))
+        result_back = cv2.warpPerspective(result, in_H_matrix, original_shape)
+        result_back_gray = cv2.cvtColor(result_back, cv2.COLOR_BGR2GRAY)
+        non_black_mask = (result_back_gray > 0).astype(np.uint8) * 255
+        black_mask = cv2.bitwise_not(non_black_mask)
+        other_image_black = cv2.bitwise_and(original_image, original_image, mask=black_mask)
+        result_final = cv2.add(result_back, other_image_black)
+
+        target_width = min(transformed_image.shape[1], transformed_image.shape[1], result.shape[1], result_final.shape[1])
+        target_height = min(transformed_image.shape[0], transformed_image.shape[0], result.shape[0], result_final.shape[0])
+
+
+        result_final_resized = cv2.resize(result_final, (target_width, target_height))
+        return result_final_resized,stdout
+    except Exception as e:
+        print(e)
+        return None
+        
 def main ():
 
     image = cv2.imread('images/p33.jpg')
@@ -343,6 +391,3 @@ def main ():
     except Exception as e:
         print(e)
         print("no puzzle detected")
-
-if __name__ == '__main__':
-    main()

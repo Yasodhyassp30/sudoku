@@ -6,6 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 from solver import solve_16x16,solve_9x9
 import tensorflow as tf
+import subprocess
+import uuid
 
 
 
@@ -13,6 +15,7 @@ import tensorflow as tf
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 modelx16 = tf.keras.models.load_model('models/model1_16.h5')
 modelx9 = tf.keras.models.load_model('models/model_9.h5')
+cpp_solver =  'a.exe'
 
 
 def detect_lines(image, threshold=50, rho_resolution=1, theta_resolution=np.pi/180):
@@ -222,7 +225,7 @@ def draw_on_image(image, matrix, selected_mode,matrix_copy):
         thickness = 2
         scale = 1
     else:
-        j_value = 0.2
+        j_value = 0.1
         thickness = 1
         scale = 0.5
     for i in range(selected_mode):
@@ -239,7 +242,7 @@ def draw_on_image_initial(image, matrix, selected_mode,matrix_copy):
         thickness = 2
         scale = 1
     else:
-        j_value = 0.2
+        j_value = 0.1
         thickness = 1
         scale = 0.5
     for i in range(selected_mode):
@@ -250,11 +253,18 @@ def draw_on_image_initial(image, matrix, selected_mode,matrix_copy):
 
                 cv2.putText(image, str(matrix[i][j]), (center_x, center_y), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 255), thickness, cv2.LINE_AA)
 
+def write_output(filename, grid):
+    with open(filename, "w") as output_file:
+        for row in grid:
+            output_file.write(" ".join(map(str, row)) + "\n")
 
-
+def read_input(filename):
+    with open(filename, "r") as input_file:
+        return [[int(num) for num in line.split()] for line in input_file]
+    
 def main ():
 
-    image = cv2.imread('images/p31.jpg')
+    image = cv2.imread('images/p33.jpg')
 
     try:
         matrix, result, selected_mode,H_matrix = preprocess_image(image) 
@@ -285,14 +295,14 @@ def main ():
                 print("wrong input")
                 return
         
-        solved =False
-        if selected_mode == 16:
-            solved = solve_16x16(matrix)
-        else:
-            solved = solve_9x9(matrix)
-
-        if solved:
+        identifier = str(uuid.uuid4())
+        filename = "sample_puzzles/"+identifier + ".txt"
+        write_output(filename, matrix)
+        process = subprocess.Popen([cpp_solver, filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return_code = process.wait()
+        if return_code ==0:
             print("solved")
+            matrix = read_input("sample_puzzles/"+identifier + "_output.txt")
             draw_on_image(result,matrix,selected_mode,matirx_copy)
         else:
             print("not solved")
@@ -330,7 +340,8 @@ def main ():
         cv2.imshow('Combined Images', combined_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    except:
+    except Exception as e:
+        print(e)
         print("no puzzle detected")
 
 if __name__ == '__main__':

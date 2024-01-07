@@ -57,7 +57,7 @@ def preprocess_image(image):
         epsilon = 0.02 * cv2.arcLength(largest_contour, True)
         approx = cv2.approxPolyDP(largest_contour, epsilon, True)
         mask_contour = np.zeros_like(image)
-        cv2.drawContours(mask_contour, [largest_contour], -1, (255, 255, 255), thickness=cv2.FILLED)
+        cv2.drawContours(mask_contour, [largest_contour], -1, (0, 255, 255), thickness=cv2.FILLED)
         result_contour = cv2.bitwise_and(image, mask_contour)
         v_lines, h_lines = detect_lines(result_contour)
         if len(approx) == 4 and v_lines >= 8 and h_lines >= 8:

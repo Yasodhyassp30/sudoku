@@ -8,7 +8,7 @@ from solver import solve_16x16,solve_9x9
 import tensorflow as tf
 import subprocess
 import uuid
-
+import sys
 
 
 
@@ -19,7 +19,6 @@ cpp_solver =  'Solver.exe'
 
 
 def detect_lines(image, threshold=50, rho_resolution=1, theta_resolution=np.pi/180):
-    
 
     edges = cv2.Canny(image, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, rho_resolution, theta_resolution, threshold)
@@ -44,10 +43,7 @@ def preprocess_image(image):
     edges = cv2.Canny(thershed, 50, 150, apertureSize=3)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     ordered_contours = sorted(contours, key=cv2.contourArea, reverse=True)
-    topleft = None
-    topright = None
-    bottomleft = None
-    bottomright = None
+    corners = [None, None, None, None]
     for idx, contour in enumerate(ordered_contours):
         largest_contour = contour
         epsilon = 0.02 * cv2.arcLength(largest_contour, True)
@@ -56,24 +52,24 @@ def preprocess_image(image):
         cv2.drawContours(mask_contour, [largest_contour], -1, (255, 255, 255), thickness=cv2.FILLED)
         result_contour = cv2.bitwise_and(image, mask_contour)
         v_lines, h_lines = detect_lines(result_contour)
-        if len(approx) >= 4 and v_lines >= 2 and h_lines >= 2:
+        if len(approx) >= 4 and v_lines >= 4 and h_lines >= 4:
             sorted_points = sorted(approx, key=lambda x: x[0][1])
             if (sorted_points[0][0][0] < sorted_points[1][0][0]):
-                topleft = sorted_points[0].tolist()[0]
-                topright = sorted_points[1].tolist()[0]
+                corners[0] = sorted_points[0].tolist()[0]
+                corners[1] = sorted_points[1].tolist()[0]
             else:
-                topleft = sorted_points[1].tolist()[0]
-                topright = sorted_points[0].tolist()[0]
+                corners[0] = sorted_points[1].tolist()[0]
+                corners[1] = sorted_points[0].tolist()[0]
 
             if (sorted_points[-1][0][0] < sorted_points[-2][0][0]):
-                bottomleft = sorted_points[-1].tolist()[0]
-                bottomright = sorted_points[-2].tolist()[0]
+                corners[2] = sorted_points[-1].tolist()[0]
+                corners[3] = sorted_points[-2].tolist()[0]
             else:
-                bottomleft = sorted_points[-2].tolist()[0]
-                bottomright = sorted_points[-1].tolist()[0]
+                corners[2] = sorted_points[-2].tolist()[0]
+                corners[3] = sorted_points[-1].tolist()[0]
             break
 
-    homography_matrix, _ = cv2.findHomography(np.array([topleft, topright, bottomleft, bottomright]),
+    homography_matrix, _ = cv2.findHomography(np.array([corners[0], corners[1], corners[2], corners[3]]),
                                             np.array([[0, 0], [image.shape[1], 0], [0, image.shape[0]],
                                                         [image.shape[1], image.shape[0]]]))
     
@@ -148,47 +144,37 @@ def read_cells(result,selected_mode,matrix,size = 400):
         largest_contour = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest_contour)
 
-        forTmodel  = roi[y:y + h, x:x + w]
+        for_tesseract_not_inverse  = roi[y:y + h, x:x + w]
 
         cropped_image = roi
         #cropped_image = cv2.morphologyEx(cropped_image, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
-        forTmodelInverse = cv2.bitwise_not(forTmodel)
+        for_tesseract_inverse = cv2.bitwise_not(for_tesseract_not_inverse)
         inverted_image = cv2.bitwise_not(cropped_image)
         
         text = identify_number(inverted_image, selected_mode)
         if selected_mode ==9 and text != 0 and text!= 9 and text!=1:
-            text_Ts= pytesseract.image_to_string(forTmodelInverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
-            if len(text_Ts) != 0:
-                text = int(text_Ts)
+            tesseract_text= pytesseract.image_to_string(for_tesseract_inverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
+            if len(tesseract_text) != 0:
+                text = int(tesseract_text)
         
 
         if selected_mode == 16 and text!=11 and text != 0 and text!= 9 and text!=1:
-            text_tes = pytesseract.image_to_string(forTmodelInverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
-            if len(text_tes) > 1 and text >= 10 :
-                text = int(text_tes)
-            elif len(text_tes) != 0:
-                text = int(text_tes)
+            tesseract_text = pytesseract.image_to_string(for_tesseract_inverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
+            if len(tesseract_text) > 1 and text >= 10 :
+                text = int(tesseract_text)
+            elif len(tesseract_text) != 0:
+                text = int(tesseract_text)
 
 
 
-        return i, j, int(text),forTmodelInverse
+        return i, j, int(text)
 
     with ThreadPoolExecutor() as executor:
         futures = [executor.submit(process_roi, i, j) for i in range(selected_mode) for j in range(selected_mode)]
         concurrent.futures.wait(futures)
-
-    combined_image = np.zeros((selected_mode*60, selected_mode*60), np.uint8)
     for future in futures:
-        i, j, value,digit= future.result()
-        digit = cv2.resize(digit, (60, 60))
-        combined_image[round((i * 60)):round(((i + 1) * 60)),
-        round((j *60)):round(((j + 1) *60))] = digit
+        i, j, value= future.result()
         matrix[i][j] = value
-    
-
-    cv2.morphologyEx(combined_image, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
-    cv2.dilate(combined_image, np.ones((3, 3), np.uint8), iterations=1)
-    text=pytesseract.image_to_string(combined_image, config="--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789",lang='eng')
 
     for i in range(selected_mode):
         print(matrix[i])
@@ -197,11 +183,6 @@ def create_grid(image, selected_mode):
     empty_white_image = np.ones_like(image) * 255
 
     border_thickness = 4
-    empty_white_image[:border_thickness, :] = 0
-    empty_white_image[-border_thickness:, :] = 0
-    empty_white_image[:, :border_thickness] = 0
-    empty_white_image[:, -border_thickness:] = 0
-
     for i in range(1, selected_mode):
         line_thickness = 4
         if i % int(np.sqrt(selected_mode)) == 0:
@@ -264,7 +245,11 @@ def read_input(filename):
     
 def main ():
 
-    image = cv2.imread('images/p4.jpg')
+    if len(sys.argv) < 2:
+        print("Usage: Provide image path")
+        return
+    filename = sys.argv[1]
+    image = cv2.imread(filename)
 
     try:
         matrix, result, selected_mode,H_matrix = preprocess_image(image) 
@@ -296,15 +281,15 @@ def main ():
                 return
         
         identifier = str(uuid.uuid4())
-        filename = "sample_puzzles/"+identifier + ".txt"
+        filename = identifier + ".txt"
         write_output(filename, matrix)
         process = subprocess.Popen([cpp_solver, filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return_code = process.wait()
-        if return_code ==0:
+        try:
+            matrix = read_input(identifier + "_output.txt")
             print("solved")
-            matrix = read_input("sample_puzzles/"+identifier + "_output.txt")
             draw_on_image(result,matrix,selected_mode,matirx_copy)
-        else:
+        except:
             print("not solved")
 
         
@@ -326,14 +311,8 @@ def main ():
         incompleted_resized = cv2.resize(incompleted, (target_width, target_height))
         result_resized = cv2.resize(result, (target_width, target_height))
         result_final_resized = cv2.resize(result_final, (target_width, target_height))
-
-
         row1 = np.concatenate((initial_show_resized, incompleted_resized), axis=1)
-
-
         row2 = np.concatenate((result_resized, result_final_resized), axis=1)
-
-
         combined_image = np.concatenate((row1, row2), axis=0)
 
 

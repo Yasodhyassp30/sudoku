@@ -65,7 +65,11 @@ function App() {
       setFinalImage(`data:image/png;base64,${base64Image}`);
       const timeRegex = /Sudoku solved in (\d+\.\d+) seconds/;
       const match = response.data.output.match(timeRegex);
+      if (match){
       setTime(match[0]);
+      }else{
+        setTime("Sudoku solved in 0 seconds");
+      }
       }catch (error) {
         console.error('Error uploading file:', error);
         alert('An error occurred solving the puzzle');

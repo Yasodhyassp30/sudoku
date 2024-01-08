@@ -4,13 +4,14 @@ import numpy as np
 import pytesseract
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
-
+import tensorflow as tf
 from solver import solve_16x16,solve_9x9
 import threading
 
 
 
-
+modelx16 = tf.keras.models.load_model('models/model1_16.h5')
+modelx9 = tf.keras.models.load_model('models/model_9.h5')
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
@@ -119,8 +120,22 @@ def preprocess_image(image):
 
     matrix = [[0 for _ in range(selected_mode)] for _ in range(selected_mode)]
     return matrix, result, selected_mode,homography_matrix,result_contour
+@tf.function
+def predict_function9x9(input_tensor):
+    return modelx9(input_tensor)
 
-
+@tf.function
+def predict_function16x16(input_tensor):
+    return modelx16(input_tensor)
+def identify_number(image, selected_mode):
+    image_resize = cv2.resize(image, (28, 28))    
+    image_resize = image_resize.reshape(1, 1, 28, 28)  
+    image_resize = image_resize.transpose(0, 2, 3, 1)
+    if selected_mode == 9:
+        loaded_model_pred = np.argmax(predict_function9x9(image_resize), axis=1)
+    else:
+        loaded_model_pred = np.argmax(predict_function16x16(image_resize), axis=1)
+    return loaded_model_pred[0]
 
 def read_cells(result,selected_mode,matrix,size = 400):
     def process_roi(i, j):
@@ -140,25 +155,27 @@ def read_cells(result,selected_mode,matrix,size = 400):
 
         cropped_image = roi
         #cropped_image = cv2.morphologyEx(cropped_image, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
-        forTmodelInverse = cv2.bitwise_not(forTmodel)
+        for_tesseract_inverse = cv2.bitwise_not(forTmodel)
         inverted_image = cv2.bitwise_not(cropped_image)
         text = 0
-        if selected_mode ==9 :
-            text_Ts= pytesseract.image_to_string(forTmodelInverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
-            if len(text_Ts) != 0:
-                text = int(text_Ts)
+        text = identify_number(inverted_image, selected_mode)
+        if selected_mode ==9 and text != 0 and text!= 9 and text!=1:
+
+            tesseract_text= pytesseract.image_to_string(for_tesseract_inverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
+            if len(tesseract_text) != 0:
+                text = int(tesseract_text)
         
 
-        if selected_mode == 16:
-            text_tes = pytesseract.image_to_string(forTmodelInverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
-            if len(text_tes) > 1 :
-                text = int(text_tes)
-            elif len(text_tes) != 0:
-                text = int(text_tes)
+        if selected_mode == 16 and text!=11 and text != 0 and text!= 9 and text!=1:
+            tesseract_text = pytesseract.image_to_string(for_tesseract_inverse, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789")
+            if len(tesseract_text) > 1 and text >= 10 :
+                text = int(tesseract_text)
+            elif len(tesseract_text) != 0:
+                text = int(tesseract_text)
 
 
 
-        return i, j, int(text),forTmodelInverse
+        return i, j, int(text),for_tesseract_inverse
 
     with ThreadPoolExecutor() as executor:
         futures = [executor.submit(process_roi, i, j) for i in range(selected_mode) for j in range(selected_mode)]
@@ -312,7 +329,7 @@ def main ():
             cv2.waitKey(0)
             cv2.destroyAllWindows()
             display_thread.join()
-        except:
+        except Exception as e:
             cv2.imshow('contoured', frame)
             cv2.waitKey(1)
     
